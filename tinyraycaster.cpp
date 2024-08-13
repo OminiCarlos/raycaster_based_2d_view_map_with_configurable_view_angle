@@ -64,7 +64,8 @@ int main() {
                        "0 0000000      0"\
                        "0              0"\
                        "0002222222200000"; // our game map
-    assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string
+    assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string, 
+    // because strings end with '\0'.Each row has map_h+1 columns.
 
     for (size_t j = 0; j<win_h; j++) { // fill the screen with color gradients
         for (size_t i = 0; i<win_w; i++) {
@@ -75,8 +76,8 @@ int main() {
         }
     }
 
-    const size_t rect_w = win_w/map_w;
-    const size_t rect_h = win_h/map_h;
+    const size_t rect_w = win_w/map_w; // the width of each map block
+    const size_t rect_h = win_h/map_h; // the height of each map block
     for (size_t j=0; j<map_h; j++) { // draw the map
         for (size_t i=0; i<map_w; i++) {
             if (map[i+j*map_w]==' ') continue; // skip empty spaces
