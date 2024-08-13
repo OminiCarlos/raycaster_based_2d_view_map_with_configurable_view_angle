@@ -104,8 +104,10 @@ int main() {
         }
     }
 
-    drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
-
+    std::cout << "started drop_ppm" << std::endl;
+    drop_ppm_image("./out93.ppm", framebuffer, win_w, win_h);
+    std::cout << "completed drop_ppm" << std::endl;
+    // std::cout << "Saving file to: " << std::filesystem::current_path() << "/out93.ppm" << std::endl;
     return 0;
 }
 
