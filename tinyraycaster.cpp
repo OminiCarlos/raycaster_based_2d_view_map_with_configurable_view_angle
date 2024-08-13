@@ -17,10 +17,24 @@ void unpack_color(const uint32_t &color, uint8_t &r, uint8_t &g, uint8_t &b, uin
     a = (color >> 24) & 255;
 }
 
+// save the framebuffer into a file.
 void drop_ppm_image(const std::string filename, const std::vector<uint32_t> &image, const size_t w, const size_t h) {
+    // assert the format of the file.
     assert(image.size() == w*h);
+    // ofstream write files. 
     std::ofstream ofs(filename);
+    // for png format, the header goes:
+    // First line: P3(plain text data)/P6 (binary data)
+    // Second line: width " " height
+    // Third line: Maximum color value. In this case 255, 
+    // when we use 8 bit to store color per channel. 
     ofs << "P6\n" << w << " " << h << "\n255\n";
+    // After the header, each pixel is stored. 
+    // although each color use 4 byte = 32 bits to store r,g,b,a,
+    // only r,g,b are written in the file. 
+    // in each cycle, unpack color converts each pixel into r,g,b,a.
+    // note that image is the framebuffer in main, storing colors in format of colors.
+    // the actual image stores colors in r,g,b.
     for (size_t i = 0; i < h*w; ++i) {
         uint8_t r, g, b, a;
         unpack_color(image[i], r, g, b, a);
@@ -44,6 +58,9 @@ void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t
 int main() {
     const size_t win_w = 512; // image width
     const size_t win_h = 512; // image height
+    // the constructor format is std::vector(size_t count, const T& value);
+    // first argument specifies the number of pixels. 
+    // second argument uint32_t, set to 255, which means 3 bytes (RGB) are 0, and A is 255. 
     std::vector<uint32_t> framebuffer(win_w*win_h, 255); // the image itself, initialized to white
 
     const size_t map_w = 16; // map width

@@ -1,4 +1,3 @@
-cmake_minimum_required (VERSION 2.8)
 project (tinyraycaster)
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
