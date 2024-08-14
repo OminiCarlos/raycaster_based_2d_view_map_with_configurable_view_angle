@@ -29,8 +29,9 @@ void drop_ppm_image(const std::string filename, const std::vector<uint32_t> &ima
     ofs.close();
 }
 
-void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t img_h, const size_t x, const size_t y, const size_t w, const size_t h, const uint32_t color) {
-    assert(img.size()==img_w*img_h);
+void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t img_h, 
+    const size_t x, const size_t y, const size_t w, const size_t h, const uint32_t color) {
+    assert(img.size()==img_w * img_h);
     for (size_t i=0; i<w; i++) {
         for (size_t j=0; j<h; j++) {
             size_t cx = x+i;
@@ -41,11 +42,23 @@ void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t
     }
 }
 
+void generate_hit_map(std::vector<char>* hit_map, size_t hit_w, size_t hit_h, size_t x, size_t y, size_t w, size_t h, char c)
+{
+    for (size_t i = 0; i<w; i++) {
+        for (size_t j = 0; j<h; j++) {
+            size_t cx = x+i;
+            size_t cy = y+j;
+            assert(cx<hit_w && cy<hit_h);
+            (*hit_map)[cx + cy * hit_w] = c;
+        }
+    }
+}
+
 int main() {
     const size_t win_w = 512; // image width
     const size_t win_h = 512; // image height
     std::vector<uint32_t> framebuffer(win_w*win_h, 255); // the image itself, initialized to white
-
+    std::vector<char> hit_map(win_w*win_h, ' ');
     const size_t map_w = 16; // map width
     const size_t map_h = 16; // map height
     const char map[] = "0000222222220000"\
@@ -67,7 +80,7 @@ int main() {
     assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string
     float player_x = 3.456; // player x position
     float player_y = 2.345; // player y position
-    float player_a = M_PI / 2; // player view direction
+    float player_a = M_PI /8; // player view direction
 
     for (size_t j = 0; j<win_h; j++) { // fill the screen with color gradients
         for (size_t i = 0; i<win_w; i++) {
@@ -86,6 +99,7 @@ int main() {
             size_t rect_x = i*rect_w;
             size_t rect_y = j*rect_h;
             draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 255, 255));
+            generate_hit_map(&hit_map, win_w, win_h, rect_x, rect_y, rect_w, rect_h,map[i+j*map_w]);
         }
     }
 
@@ -93,38 +107,53 @@ int main() {
     draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
 
     // render a ray that represents the gaze of the player.
+    // assume theta is within [0,45]. if theta > 45, an increment of x can represent more than 1 increment of y. 
+        // leading to holes.
+    // It's a bit hard to do it pixel by pixel. 
+    size_t px = player_x*rect_w; // player x in pixel
+    size_t py = player_y*rect_h; // player y in pixel
 
+    size_t cx = px;
+    for (; cx <= 512; cx++)
+    {
+        size_t cy = (cx - px)  * tan(player_a) + py;
+        if(hit_map[cx + cy * win_w] != ' ') break;
+         framebuffer[cx + cy * win_w] = pack_color(255, 255, 255); 
+    }
 
+    // block based ray casting.
     /* 
     what is t? it is a unit in relation to the wall blocks.
     Why is it <20? 20 is an arbitary number.
     Just make sure it is larger than 14 * sqrt(2) = 19. 798, which is the diagnal of the square (16-2) * (16-2),
     the largest distance in the map.
     */
-    for (float t=0; t<20; t+=.05) {  
+
+    // for (float t=0; t<20; t+=.05) {  
         
         
-        float cx = player_x + t*cos(player_a);
-        float cy = player_y + t*sin(player_a);
+    //     float cx = player_x + t*cos(player_a);
+    //     float cy = player_y + t*sin(player_a);
     
 
-        // if hits a wall, stop casting.
-        if (map[int(cx)+int(cy)*map_w]!=' ') break;
+    //     // if hits a wall, stop casting.
+    //     if (map[int(cx)+int(cy)*map_w]!=' ') break;
 
-        // why is it cx * rect_w?
-        size_t pix_x = cx*rect_w;
-        size_t pix_y = cy*rect_h;
+    //     // why is it cx * rect_w?
+    //     size_t pix_x = cx*rect_w;
+    //     size_t pix_y = cy*rect_h;
 
-        /*
-        set that pixel to be white.
-        the angle is rendered clock-wise, because the original point of a pic is the first pixel, which is the top left.
-        as the t increase, the pixel are rendered in right and down direction.
-        this is countary to the mathmatical convention.
-        */
-        framebuffer[pix_x + pix_y*win_w] = pack_color(255, 255, 255); 
-    }
+    //     /*
+    //     set that pixel to be white.
+    //     the angle is rendered clock-wise, because the original point of a pic is the first pixel, which is the top left.
+    //     as the t increase, the pixel are rendered in right and down direction.
+    //     this is countary to the mathmatical convention.
+    //     */
+    //     framebuffer[pix_x + pix_y*win_w] = pack_color(255, 255, 255); 
+    // }
 
     drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
+    std::cout << "what's up." << std::endl;
 
     return 0;
 }
