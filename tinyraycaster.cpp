@@ -17,24 +17,10 @@ void unpack_color(const uint32_t &color, uint8_t &r, uint8_t &g, uint8_t &b, uin
     a = (color >> 24) & 255;
 }
 
-// save the framebuffer into a file.
 void drop_ppm_image(const std::string filename, const std::vector<uint32_t> &image, const size_t w, const size_t h) {
-    // assert the format of the file.
     assert(image.size() == w*h);
-    // ofstream write files. 
     std::ofstream ofs(filename);
-    // for png format, the header goes:
-    // First line: P3(plain text data)/P6 (binary data)
-    // Second line: width " " height
-    // Third line: Maximum color value. In this case 255, 
-    // when we use 8 bit to store color per channel. 
     ofs << "P6\n" << w << " " << h << "\n255\n";
-    // After the header, each pixel is stored. 
-    // although each color use 4 byte = 32 bits to store r,g,b,a,
-    // only r,g,b are written in the file. 
-    // in each cycle, unpack color converts each pixel into r,g,b,a.
-    // note that image is the framebuffer in main, storing colors in format of colors.
-    // the actual image stores colors in r,g,b.
     for (size_t i = 0; i < h*w; ++i) {
         uint8_t r, g, b, a;
         unpack_color(image[i], r, g, b, a);
@@ -58,9 +44,6 @@ void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t
 int main() {
     const size_t win_w = 512; // image width
     const size_t win_h = 512; // image height
-    // the constructor format is std::vector(size_t count, const T& value);
-    // first argument specifies the number of pixels. 
-    // second argument uint32_t, set to 255, which means 3 bytes (RGB) are 0, and A is 255. 
     std::vector<uint32_t> framebuffer(win_w*win_h, 255); // the image itself, initialized to white
 
     const size_t map_w = 16; // map width
@@ -81,11 +64,10 @@ int main() {
                        "0 0000000      0"\
                        "0              0"\
                        "0002222222200000"; // our game map
-    assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string, 
-    // because strings end with '\0'.Each row has map_h+1 columns.
+    assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string
     float player_x = 3.456; // player x position
     float player_y = 2.345; // player y position
-    float player_a = 1.523; // player view direction
+    float player_a = M_PI / 2; // player view direction
 
     for (size_t j = 0; j<win_h; j++) { // fill the screen with color gradients
         for (size_t i = 0; i<win_w; i++) {
@@ -96,8 +78,8 @@ int main() {
         }
     }
 
-    const size_t rect_w = win_w/map_w; // the width of each map block
-    const size_t rect_h = win_h/map_h; // the height of each map block
+    const size_t rect_w = win_w/map_w;
+    const size_t rect_h = win_h/map_h;
     for (size_t j=0; j<map_h; j++) { // draw the map
         for (size_t i=0; i<map_w; i++) {
             if (map[i+j*map_w]==' ') continue; // skip empty spaces
@@ -111,34 +93,38 @@ int main() {
     draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
 
     // render a ray that represents the gaze of the player.
-    for (float t=0; t<20; t+=.05) {
+
+
+    /* 
+    what is t? it is a unit in relation to the wall blocks.
+    Why is it <20? 20 is an arbitary number.
+    Just make sure it is larger than 14 * sqrt(2) = 19. 798, which is the diagnal of the square (16-2) * (16-2),
+    the largest distance in the map.
+    */
+    for (float t=0; t<20; t+=.05) {  
+        
+        
         float cx = player_x + t*cos(player_a);
         float cy = player_y + t*sin(player_a);
+    
+
+        // if hits a wall, stop casting.
         if (map[int(cx)+int(cy)*map_w]!=' ') break;
 
+        // why is it cx * rect_w?
         size_t pix_x = cx*rect_w;
         size_t pix_y = cy*rect_h;
-        framebuffer[pix_x + pix_y*win_w] = pack_color(255, 255, 255);
+
+        /*
+        set that pixel to be white.
+        the angle is rendered clock-wise, because the original point of a pic is the first pixel, which is the top left.
+        as the t increase, the pixel are rendered in right and down direction.
+        this is countary to the mathmatical convention.
+        */
+        framebuffer[pix_x + pix_y*win_w] = pack_color(255, 255, 255); 
     }
 
-    // draw the player on the map
-    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
+    drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
 
-    // render a ray that represents the gaze of the player.
-    for (float t=0; t<20; t+=.05) {
-        float cx = player_x + t*cos(player_a);
-        float cy = player_y + t*sin(player_a);
-        if (map[int(cx)+int(cy)*map_w]!=' ') break;
-
-        size_t pix_x = cx*rect_w;
-        size_t pix_y = cy*rect_h;
-        framebuffer[pix_x + pix_y*win_w] = pack_color(255, 255, 255);
-    }
-
-    std::cout << "started drop_ppm" << std::endl;
-    drop_ppm_image("./out93.ppm", framebuffer, win_w, win_h);
-    std::cout << "completed drop_ppm" << std::endl;
- 
     return 0;
 }
-
