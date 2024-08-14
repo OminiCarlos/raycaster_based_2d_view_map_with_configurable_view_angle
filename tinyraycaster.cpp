@@ -92,6 +92,7 @@ int main() {
     // draw the player on the map
     draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
 
+    // render a ray that represents the gaze of the player.
     for (float t=0; t<20; t+=.05) {
         float cx = player_x + t*cos(player_a);
         float cy = player_y + t*sin(player_a);
