@@ -156,39 +156,8 @@ int main() {
         }
     }
 
-    // block based ray casting.
-    /* 
-    what is t? it is a unit in relation to the wall blocks.
-    Why is it <20? 20 is an arbitary number.
-    Just make sure it is larger than 14 * sqrt(2) = 19. 798, which is the diagnal of the square (16-2) * (16-2),
-    the largest distance in the map.
-    */
-
-    // for (float t=0; t<20; t+=.05) {  
-        
-        
-    //     float cx = player_x + t*cos(player_a);
-    //     float cy = player_y + t*sin(player_a);
-    
-
-    //     // if hits a wall, stop casting.
-    //     if (map[int(cx)+int(cy)*map_w]!=' ') break;
-
-    //     // why is it cx * rect_w?
-    //     size_t pix_x = cx*rect_w;
-    //     size_t pix_y = cy*rect_h;
-
-    //     /*
-    //     set that pixel to be white.
-    //     the angle is rendered clock-wise, because the original point of a pic is the first pixel, which is the top left.
-    //     as the t increase, the pixel are rendered in right and down direction.
-    //     this is countary to the mathmatical convention.
-    //     */
-    //     framebuffer[pix_x + pix_y*win_w] = pack_color(255, 255, 255); 
-    // }
-
     drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
-    std::cout << "what's up." << std::endl;
+    std::cout << "yo" << std::endl;
 
     return 0;
 }
