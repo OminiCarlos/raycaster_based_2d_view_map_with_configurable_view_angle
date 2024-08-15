@@ -97,7 +97,7 @@ int main() {
     // because strings end with '\0'.Each row has map_h+1 columns.
     float player_x = 3.456; // player x position
     float player_y = 2.345; // player y position
-    float player_a = M_PI /8; // player view direction
+    float player_a = M_PI/3; // player view direction
 
     for (size_t j = 0; j<win_h; j++) { // fill the screen with color gradients
         for (size_t i = 0; i<win_w; i++) {
@@ -130,12 +130,30 @@ int main() {
     size_t px = player_x*rect_w; // player x in pixel
     size_t py = player_y*rect_h; // player y in pixel
 
-    size_t cx = px;
-    for (; cx <= 512; cx++)
+    if(player_a >= (float) 0 && player_a <= (float)M_PI_4)
     {
-        size_t cy = (cx - px)  * tan(player_a) + py;
-        if(hit_map[cx + cy * win_w] != ' ') break;
-         framebuffer[cx + cy * win_w] = pack_color(255, 255, 255); 
+        for (size_t cx = px; cx <= win_w; cx++) 
+        {
+            size_t cy = (cx - px)  * tan(player_a) + py;
+            if(hit_map[cx + cy * win_w] != ' ') break;
+            framebuffer[cx + cy * win_w] = pack_color(255, 255, 255); 
+        }
+    }
+    if(player_a >= (float) M_PI/4 && player_a <= (float) M_PI/2)
+    {
+        // naive approach: use cot and scan y. 
+        // a smart way is to swap x and y, and swap back when evaluating and rendering.
+        // for now I will commit what I have. 
+        double sine = sin(player_a);
+        double cosine = cos(player_a);
+        double cot = cosine / sine ; // why does the sin = 0?
+
+        for (size_t cy = py; cy <= win_h; cy++) 
+        {
+            int cx = (cy - py) * cot + (double) px; // it's better than 1/tan. Imagine theta = pi/2
+            if(hit_map[cx + cy * win_w] != ' ') break;
+            framebuffer[cx + cy * win_w] = pack_color(255, 255, 255); 
+        }
     }
 
     // block based ray casting.
