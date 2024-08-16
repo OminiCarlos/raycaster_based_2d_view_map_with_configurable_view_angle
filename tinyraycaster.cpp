@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <cassert>
+#include <utility>
 
 uint32_t pack_color(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a=255) {
     return (a<<24) + (b<<16) + (g<<8) + r;
@@ -100,7 +101,7 @@ int main() {
     // the player state.
     float player_x = 13.456; // player x position
     float player_y = 2.345; // player y position
-    float degree = 75;
+    float degree = 135;
     float player_a = (float) (degree/ 180) * M_PI; // player view direction
 
 
@@ -133,49 +134,52 @@ int main() {
     draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
 
     // raycasting: render a ray that represents the gaze of the player.
-    // assume theta is within [0,45]. if theta > 45, an increment of x can represent more than 1 increment of y. 
-        // leading to holes.
-    // It's a bit hard to do it pixel by pixel. 
+
     size_t px = player_x*rect_w; // player x in pixel
     size_t py = player_y*rect_h; // player y in pixel
-    int c_pri; // cast coordinate at primary axis;
-    int c_sec; // cast coordinate at secondary axis;
-    int o_pri; // origin at primary axis
-    int o_sec; // origin at secondary axis
-    int lim_pri; // limit of the original axis
+    float dx = cos(player_a);
+    float dy = sin(player_a);
+    
+    int stepx = (dx == 0) ? 0 : (dx < 0 ? -1 : 1);
+    int stepy = (dy == 0) ? 0 : (dy < 0 ? -1 : 1);
+
     bool steep = false; // flag that idicates the data needs to be transposed.
-    if(player_a >= (float) M_PI/4 && player_a <= (float) M_PI/2)
+    int lim_pri = win_w; // limit of the primary axis
+    int c_x = px; // cast coordinate at primary axis;
+    int c_y = py; // cast coordinate at secondary axis;
+    float delta = abs(dy/dx);
+
+    if (abs(dy) > abs(dx)) 
     {
-        c_pri = py;  // primary axis is y, becasue each step of y incurrs delta x <1.
-        o_pri = py;
-        o_sec = px;  // specify the origin of the secondary axis
-        lim_pri = win_h;
         steep = true;
+        lim_pri = win_h;
+        std::swap(c_x, c_y);
+        std::swap(dx, dy);
+        std::swap(stepx, stepx);
     }
 
-    if(player_a >= (float) 0 && player_a <= (float)M_PI_4)
-    {
-        c_pri = px;  // primary axis is x, becasue each step of x leads to delta y <1.
-        o_pri = px;
-        o_sec = py;  // specify the origin of the secondary axis
-        lim_pri = win_w;
-    }
-
-    for (; c_pri <= lim_pri; c_pri++) 
+    float sum_delta = 0;
+    while (c_x <= lim_pri && c_x >= 0)
     {   
-        double factor;
-        steep?  factor = cos(player_a) / sin(player_a) : factor = tan(player_a);
-        size_t c_sec = (c_pri - o_pri)  * factor + o_sec;
-
+        // render first;
         if(steep) // transpose back by switching x, y coordinates in the coordinate reference.
         {
-            if(hit_map[c_sec + c_pri * lim_pri] != ' ') break;
-            framebuffer[c_sec + c_pri * lim_pri] = pack_color(255, 255, 255); // segfalut
+            if(hit_map[c_y + c_x * lim_pri] != ' ') break;
+            framebuffer[c_y + c_x * lim_pri] = pack_color(255, 255, 255); // segfalut
         }
         else
         {
-            if(hit_map[c_pri + c_sec * lim_pri] != ' ') break;
-            framebuffer[c_pri + c_sec * lim_pri] = pack_color(255, 255, 255); // segfalut
+            if(hit_map[c_x + c_y * lim_pri] != ' ') break;
+            framebuffer[c_x + c_y * lim_pri] = pack_color(255, 255, 255); // segfalut
+        }
+
+        // then figure out the next pixel.
+        c_x += stepx;
+        sum_delta += delta;
+        if (sum_delta >= 0.5)
+        {
+            c_y++;
+            sum_delta -= 1;
         }
     }
 
