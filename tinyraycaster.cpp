@@ -95,10 +95,16 @@ int main() {
                        "0002222222200000"; // our game map
     assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string, 
     // because strings end with '\0'.Each row has map_h+1 columns.
-    float player_x = 3.456; // player x position
-    float player_y = 2.345; // player y position
-    float player_a = M_PI/3; // player view direction
 
+
+    // the player state.
+    float player_x = 13.456; // player x position
+    float player_y = 2.345; // player y position
+    float degree = 75;
+    float player_a = (float) (degree/ 180) * M_PI; // player view direction
+
+
+    // map rendering: background. 
     for (size_t j = 0; j<win_h; j++) { // fill the screen with color gradients
         for (size_t i = 0; i<win_w; i++) {
             uint8_t r = 255*j/float(win_h); // varies between 0 and 255 as j sweeps the vertical
@@ -108,6 +114,7 @@ int main() {
         }
     }
 
+    // map rendering: wall initialization. (render the wall and generate hit map)
     const size_t rect_w = win_w/map_w; // the width of each map block
     const size_t rect_h = win_h/map_h; // the height of each map block
     for (size_t j=0; j<map_h; j++) { // draw the map
@@ -120,39 +127,61 @@ int main() {
         }
     }
 
-    // draw the player on the map
+
+    // player initialization. 
+    // player rendering: draw the player on the map
     draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
 
-    // render a ray that represents the gaze of the player.
+    // raycasting: render a ray that represents the gaze of the player.
     // assume theta is within [0,45]. if theta > 45, an increment of x can represent more than 1 increment of y. 
         // leading to holes.
     // It's a bit hard to do it pixel by pixel. 
     size_t px = player_x*rect_w; // player x in pixel
     size_t py = player_y*rect_h; // player y in pixel
+    int c_pri; // cast coordinate at primary axis;
+    int c_sec; // cast coordinate at secondary axis;
+    int o_pri; // origin at primary axis
+    int o_sec; // origin at secondary axis
+    int lim_pri; // limit of the original axis
+    bool steep = false; // flag that idicates the data needs to be transposed.
+    if(player_a >= (float) M_PI/4 && player_a <= (float) M_PI/2)
+    {
+        c_pri = py;  // primary axis is y, becasue each step of y incurrs delta x <1.
+        o_pri = py;
+        o_sec = px;  // specify the origin of the secondary axis
+        lim_pri = win_h;
+        steep = true;
+    }
 
     if(player_a >= (float) 0 && player_a <= (float)M_PI_4)
     {
-        for (size_t cx = px; cx <= win_w; cx++) 
-        {
-            size_t cy = (cx - px)  * tan(player_a) + py;
-            if(hit_map[cx + cy * win_w] != ' ') break;
-            framebuffer[cx + cy * win_w] = pack_color(255, 255, 255); 
-        }
+        c_pri = px;  // primary axis is x, becasue each step of x leads to delta y <1.
+        o_pri = px;
+        o_sec = py;  // specify the origin of the secondary axis
+        lim_pri = win_w;
     }
-    if(player_a >= (float) M_PI/4 && player_a <= (float) M_PI/2)
-    {
-        // naive approach: use cot and scan y. 
-        // a smart way is to swap x and y, and swap back when evaluating and rendering.
-        // for now I will commit what I have. 
-        double sine = sin(player_a);
-        double cosine = cos(player_a);
-        double cot = cosine / sine ; // why does the sin = 0?
 
-        for (size_t cy = py; cy <= win_h; cy++) 
+    for (; c_pri <= lim_pri; c_pri++) 
+    {   
+        double factor;
+        steep?  factor = cos(player_a) / sin(player_a) : factor = tan(player_a);
+        size_t c_sec = (c_pri - o_pri)  * factor + o_sec;
+
+        if(steep) 
         {
-            int cx = (cy - py) * cot + (double) px; // it's better than 1/tan. Imagine theta = pi/2
-            if(hit_map[cx + cy * win_w] != ' ') break;
-            framebuffer[cx + cy * win_w] = pack_color(255, 255, 255); 
+            int temp = c_pri;
+            c_pri = c_sec;
+            c_sec = temp;
+        }
+
+        if(hit_map[c_pri + c_sec * lim_pri] != ' ') break;
+        framebuffer[c_pri + c_sec * lim_pri] = pack_color(255, 255, 255); // segfalut
+
+        if(steep) 
+        {
+            int temp = c_pri;
+            c_pri = c_sec;
+            c_sec = temp;
         }
     }
 
