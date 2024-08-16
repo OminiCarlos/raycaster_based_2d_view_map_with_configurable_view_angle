@@ -167,21 +167,15 @@ int main() {
         steep?  factor = cos(player_a) / sin(player_a) : factor = tan(player_a);
         size_t c_sec = (c_pri - o_pri)  * factor + o_sec;
 
-        if(steep) 
+        if(steep) // transpose back by switching x, y coordinates in the coordinate reference.
         {
-            int temp = c_pri;
-            c_pri = c_sec;
-            c_sec = temp;
+            if(hit_map[c_sec + c_pri * lim_pri] != ' ') break;
+            framebuffer[c_sec + c_pri * lim_pri] = pack_color(255, 255, 255); // segfalut
         }
-
-        if(hit_map[c_pri + c_sec * lim_pri] != ' ') break;
-        framebuffer[c_pri + c_sec * lim_pri] = pack_color(255, 255, 255); // segfalut
-
-        if(steep) 
+        else
         {
-            int temp = c_pri;
-            c_pri = c_sec;
-            c_sec = temp;
+            if(hit_map[c_pri + c_sec * lim_pri] != ' ') break;
+            framebuffer[c_pri + c_sec * lim_pri] = pack_color(255, 255, 255); // segfalut
         }
     }
 
