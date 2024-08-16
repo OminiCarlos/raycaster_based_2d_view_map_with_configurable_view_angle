@@ -1,4 +1,6 @@
-A 2D ray caster that 
+A 2D ray caster that shows the vision of a player. 
+![image](https://github.com/user-attachments/assets/419cc22b-facc-48ae-af04-99d25663e923)
+
 This is a spin of the original repo.
 The orginal repo uses polar coordinates to locate points on the ray. The issue with this approach is that if the increment is not small enough, it is hard to guarantee that every pixel on the ray is covered, leading to holes.
 ![image](https://github.com/user-attachments/assets/ad466ac2-0e34-4dbe-ac56-4fa154ab90c4)
