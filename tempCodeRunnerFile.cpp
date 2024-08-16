@@ -1,6 +1,5 @@
-        if(steep) 
-        {
-            int temp = c_pri;
-            c_pri = c_sec;
-            c_sec = temp;
-        }
+    for (
+        float view_a = M_PI / 2;
+        view_a <= M_PI * 2; 
+        view_a += M_PI / 180
+        )

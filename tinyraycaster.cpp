@@ -68,6 +68,61 @@ void generate_hit_map(std::vector<char>* hit_map, size_t hit_w, size_t hit_h, si
     }
 }
 
+void cast_ray(float& player_a, size_t& px, size_t& py, const size_t& win_w, const size_t& win_h, std::vector<char>& hit_map, std::vector<unsigned int>& framebuffer)
+{
+    float dx = cosf(player_a);
+    if (fabs(dx) < 1e-7) {  // 1e-7 is an example threshold
+        dx = 0.0f;
+    }
+    float dy = sinf(player_a);
+    if (fabs(dy) < 1e-7) {  // 1e-7 is an example threshold
+        dy = 0.0f;
+    }
+    
+    int stepx = (dx == 0) ? 0 : (dx < 0 ? -1 : 1);
+    int stepy = (dy == 0) ? 0 : (dy < 0 ? -1 : 1);
+
+    bool steep = false; // flag that idicates the data needs to be transposed.
+    int lim_pri = win_w; // limit of the primary axis
+    int c_x = px; // cast coordinate at primary axis;
+    int c_y = py; // cast coordinate at secondary axis;
+
+    if (abs(dy) > abs(dx)) 
+    {
+        steep = true;
+        lim_pri = win_h;
+        std::swap(c_x, c_y);
+        std::swap(dx, dy);
+        std::swap(stepx, stepy);
+    }
+
+    float delta = (dx == 0) ? 1: abs(dy/dx); // just give a constant number to avoid arithmatic error
+    float sum_delta = 0;
+    while (c_x >= 0 && c_x <= lim_pri)
+    {   
+        // render first;
+        if(steep) // transpose back by switching x, y coordinates in the coordinate reference.
+        {
+            if(hit_map[c_y + c_x * win_w] != ' ') break;
+            framebuffer[c_y + c_x * win_w] = pack_color(255, 255, 255); // segfalut
+        }
+        else
+        {
+            if(hit_map[c_x + c_y * win_w] != ' ') break;
+            framebuffer[c_x + c_y * win_w] = pack_color(255, 255, 255); // segfalut
+        }
+
+        // then figure out the next pixel.
+        c_x += stepx;
+        sum_delta += delta;
+        if (sum_delta > 0.5)
+        {
+            c_y += stepy;
+            sum_delta -= 1;
+        }
+    }
+}
+
 int main() {
     const size_t win_w = 512; // image width
     const size_t win_h = 512; // image height
@@ -101,8 +156,8 @@ int main() {
     // the player state.
     float player_x = 13.456; // player x position
     float player_y = 2.345; // player y position
-    float degree = 135;
-    float player_a = (float) (degree/ 180) * M_PI; // player view direction
+    float degree = 125;
+    float player_a = (degree/ 180) * M_PI; // player view direction
 
 
     // map rendering: background. 
@@ -131,60 +186,27 @@ int main() {
 
     // player initialization. 
     // player rendering: draw the player on the map
-    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 255, 255));
+    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w - 2, player_y*rect_h -2, 5, 5, pack_color(255, 255, 255));
 
     // raycasting: render a ray that represents the gaze of the player.
 
     size_t px = player_x*rect_w; // player x in pixel
     size_t py = player_y*rect_h; // player y in pixel
-    float dx = cos(player_a);
-    float dy = sin(player_a);
+
+    // cast_ray(player_a, px, py, win_w, win_h, hit_map, framebuffer);
     
-    int stepx = (dx == 0) ? 0 : (dx < 0 ? -1 : 1);
-    int stepy = (dy == 0) ? 0 : (dy < 0 ? -1 : 1);
-
-    bool steep = false; // flag that idicates the data needs to be transposed.
-    int lim_pri = win_w; // limit of the primary axis
-    int c_x = px; // cast coordinate at primary axis;
-    int c_y = py; // cast coordinate at secondary axis;
-    float delta = abs(dy/dx);
-
-    if (abs(dy) > abs(dx)) 
+    for (
+        float view_a = player_a - M_PI / 6;
+        view_a <= player_a + M_PI / 6;
+        view_a += M_PI / 180
+        )
     {
-        steep = true;
-        lim_pri = win_h;
-        std::swap(c_x, c_y);
-        std::swap(dx, dy);
-        std::swap(stepx, stepx);
+        cast_ray(view_a, px, py, win_w, win_h, hit_map, framebuffer);
     }
-
-    float sum_delta = 0;
-    while (c_x <= lim_pri && c_x >= 0)
-    {   
-        // render first;
-        if(steep) // transpose back by switching x, y coordinates in the coordinate reference.
-        {
-            if(hit_map[c_y + c_x * lim_pri] != ' ') break;
-            framebuffer[c_y + c_x * lim_pri] = pack_color(255, 255, 255); // segfalut
-        }
-        else
-        {
-            if(hit_map[c_x + c_y * lim_pri] != ' ') break;
-            framebuffer[c_x + c_y * lim_pri] = pack_color(255, 255, 255); // segfalut
-        }
-
-        // then figure out the next pixel.
-        c_x += stepx;
-        sum_delta += delta;
-        if (sum_delta >= 0.5)
-        {
-            c_y++;
-            sum_delta -= 1;
-        }
-    }
+   
 
     drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
-    std::cout << "yo" << std::endl;
+    std::cout << "ha" << std::endl;
 
     return 0;
 }
