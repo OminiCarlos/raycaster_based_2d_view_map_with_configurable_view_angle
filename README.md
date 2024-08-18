@@ -148,4 +148,6 @@ An issue I have is that when the angle = pi/2, the ray is casted upwards instead
 ```
 At this point, we have a somewhat working code for ray casting. There are still a lot of issues with the code. At the moment, the players view is sweeped by casting a ray at each 1 degree. However, when the distance is big, the ray will leave gaps in between. The reason is again that the code is casting rays in polar coordinates.
 
+![image](https://github.com/user-attachments/assets/2f3fd492-f05b-4f9a-a03c-81fd6bab2142)
+
 I will refactor the code, so the polar system is converted to cartisian as soon as possible, to reduce the need to do float point calculations, which is computationally expensive. I will also chance the way sweep the view by incrementing angles. Instend, I will assume the ray intercets a point on the edge of the map, and cast a ray that connects the 2 points. 
