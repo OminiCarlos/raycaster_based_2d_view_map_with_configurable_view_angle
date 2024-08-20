@@ -7,6 +7,12 @@
 #include <cassert>
 #include <utility>
 
+struct Point
+{
+    float x;
+    float y;
+};
+
 uint32_t pack_color(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a=255) {
     return (a<<24) + (b<<16) + (g<<8) + r;
 }
@@ -124,6 +130,112 @@ void cast_ray(float& player_a, size_t px, size_t py, const size_t win_w, const s
     }
 }
 
+Point find_intersection(float theta, size_t px, size_t py,int max_w, int max_h) {
+    // initialize parameters
+    Point intersection;
+    // if steep, transpose to avoid tan(theta) being too big.
+    float dx = cos(theta);
+    if(dx < 1e-7) dx = 0.0f;
+    float dy = sin(theta);
+    if(dy < 1e-7) dy = 0.0f;
+    if (dx == 0 && dy == 0)
+    {
+        intersection.x = px; 
+        intersection.y = py;
+        return intersection;
+    }
+    if (dx == 0)
+    {
+        intersection.y = py;
+        intersection.x = dy > 0 ? max_w : 0;
+        return intersection;
+    }
+    if (dy == 0)
+    {
+        intersection.x = px;
+        intersection.y = dx > 0 ? max_h : 0;
+        return intersection;
+    }
+    bool steep = false;
+    if (dy > dx) {
+        std::swap(px, py);
+        std::swap(max_h, max_w);
+        std::swap(dx, dy);
+        steep = true;
+    }
+    float slope = dy/dx;
+    int intercept = py - slope * px; 
+
+    // find intersection with the limits. (make it a separate function)
+    // find the quadrant the intersection is in. 
+    // if angle more than angle to the vertice, change the known factor for intersection.
+    // plot the tangent function, you will find that in any quadrant, tan(theta) increases with theta.
+
+    if (dx > 0 && dy > 0) {
+        int x_2_a = max_w - px; // horizontal distance to a, a is the vertice in the first quadrant;
+        int y_2_a = max_h - py; // vertical distance to a, a a is the vertice in the first quadrant;
+        // fisrt quadrant; compare with a
+        if (slope > (y_2_a / x_2_a)) {
+                // tan(theta) > tan(a), know y, find x
+                intersection.y = max_h;
+                intersection.x = (intersection.y - intercept) / slope;
+            } else {
+                // tan(theta) < tan(a), know x, find y
+                intersection.x = max_w;
+                intersection.y = intersection.x * slope + intercept;
+            }
+    }
+
+    if (dx <= 0 && dy>= 0) {
+        // second quadrant; compare with b
+        int x_2_b = 0 - px; // horizontal distance to b, b is the vertice in the second quadrant;
+        int y_2_b = max_h - py; // vertical distance to b, b is the vertice in the second quadrant;
+        if (slope < (y_2_b / x_2_b)) {
+                // tan(theta) < tan(a), know y, find x
+                intersection.y = max_h;
+                intersection.x = (intersection.y - intercept) / slope;
+            } else {
+                // tan(theta) > tan(a), know x, find y
+                intersection.x = 0;
+                intersection.y = intersection.x * slope + intercept;
+            }
+    }
+
+    if (dx<= 0 && dy<= 0) {
+        // third quadrant; compare with c
+        int x_2_c = 0 - px; // horizontal distance to d, d is the vertice in the first quadrant;
+        int y_2_c = 0 - py; // vertical distance to d, d is the vertice in the first quadrant;
+        if (slope > (y_2_c / x_2_c)) {
+                // tan(theta) > tan(a), know y, find x
+                intersection.y = 0;
+                intersection.x = (intersection.y - intercept) /slope ;
+            } else {
+                // tan(theta) < tan(a), know x, find y
+                intersection.x = 0;
+                intersection.y = intersection.x * slope + intercept;
+            }
+    }
+    if (dx>= 0 && dy<= 0) {
+        // forth quadrant; compare with d
+        int x_2_d = max_w - px; // horizontal distance to d, d is the vertice in the forth quadrant;
+        int y_2_d = 0 - py; // vertical distance to d, d is the vertice in the forth quadrant;
+        if (slope < (y_2_d / x_2_d)) {
+                // tan(theta) < tan(a), know y, find x
+                intersection.y = 0;
+                intersection.x = (intersection.y - intercept) / slope;
+            } else {
+                // tan(theta) < tan(a), know x, find y
+                intersection.x = 0;
+                intersection.y = intersection.x * slope + intercept;
+            }
+    }
+
+    if(!steep) {
+        std::swap(intersection.x,intersection.y);
+    }
+    return intersection;
+}
+
 int main() {
     const size_t win_w = 512; // image width
     const size_t win_h = 512; // image height
@@ -159,6 +271,8 @@ int main() {
     float player_y = 2.345; // player y position
     float degree = 125;
     float player_a = (degree/ 180) * M_PI; // player view direction
+    float vision_angle = (120 / 180 * M_PI); // parameter; how wide the player can see. 
+    assert(vision_angle > 0);
 
 
     // map rendering: background. 
@@ -193,105 +307,15 @@ int main() {
 
     size_t px = player_x*rect_w; // player x in pixel
     size_t py = player_y*rect_h; // player y in pixel
+    size_t theta1 = player_a - vision_angle / 2; // lower bound of player view;
+    size_t theta2 = player_a + vision_angle / 2; // upper bound of player view;
 
     // cast_ray() draws a line to connect the begin and end points. 
     // first find the end points of players view, which are the rays' intersection with the border.
     // pre-treatment: find out points to iterate;
-    
-    // initialize parameters
-    int intersection_x;
-    int intersection_y;
-    float dx = cos(player_a); 
-    float dy = sin(player_a);
-    float vision_angle = (120 / 180 * M_PI); // parameter; how wide the player can see. 
-    assert(vision_angle > 0);
-    int max_h = win_h;
-    int max_w = win_w;
-    // if steep, transpose to avoid tan(theta) being too big.
-    float theta_1 = player_a - vision_angle / 2;
-    float theta_2 = player_a + vision_angle / 2;
-    float d_x_theta1 = cos(theta_1);
-    float d_y_theta1 = sin(theta_1);
-    bool steep = false;
-    if (dy > dx) {
-        std::swap(px, py);
-        std::swap(max_h, max_w);
-        std::swap(d_x_theta1,d_y_theta1);
-        steep = true;
-    }
-    int intercept = py - dy/dx * px; 
-
-
-    //TODO: swap back somewhere
-
-
-    // find intersection with the limits. (make it a separate function)
-    // find the quadrant the intersection is in. 
-    // if angle more than angle to the vertice, change the known factor for intersection.
-    // plot the tangent function, you will find that in any quadrant, tan(theta) increases with theta.
-    if (d_x_theta1 >= 0 && d_y_theta1 >= 0) {
-        int x_2_a = max_w - px; // horizontal distance to a, a is the vertice in the first quadrant;
-        int y_2_a = max_h - py; // vertical distance to a, a a is the vertice in the first quadrant;
-        // fisrt quadrant; compare with a
-        if (d_y_theta1 / d_x_theta1 > (y_2_a / x_2_a)) {
-                // tan(theta) > tan(a), know y, find x
-                intersection_y = max_h;
-                intersection_x = (intersection_y - intercept) * d_x_theta1 / d_y_theta1 ;
-            } else {
-                // tan(theta) < tan(a), know x, find y
-                intersection_x = max_w;
-                intersection_y = intersection_x * d_y_theta1 / d_x_theta1 + intercept;
-            }
-    }
-
-    if (d_x_theta1 <= 0 && d_y_theta1 >= 0) {
-        // second quadrant; compare with b
-        int x_2_b = 0 - px; // horizontal distance to b, b is the vertice in the second quadrant;
-        int y_2_b = max_h - py; // vertical distance to b, b is the vertice in the second quadrant;
-        if (d_y_theta1 / d_x_theta1 < (y_2_b / x_2_b)) {
-                // tan(theta) < tan(a), know y, find x
-                intersection_y = max_h;
-                intersection_x = (intersection_y - intercept) * d_x_theta1 / d_y_theta1 ;
-            } else {
-                // tan(theta) > tan(a), know x, find y
-                intersection_x = 0;
-                intersection_y = intersection_x * d_y_theta1 / d_x_theta1 + intercept;
-            }
-    }
-
-    if (d_x_theta1 <= 0 && d_y_theta1 <= 0) {
-        // third quadrant; compare with c
-        int x_2_c = 0 - px; // horizontal distance to d, d is the vertice in the first quadrant;
-        int y_2_c = 0 - py; // vertical distance to d, d is the vertice in the first quadrant;
-        if (d_y_theta1 / d_x_theta1 > (y_2_c / x_2_c)) {
-                // tan(theta) > tan(a), know y, find x
-                intersection_y = 0;
-                intersection_x = (intersection_y - intercept) * d_x_theta1 / d_y_theta1 ;
-            } else {
-                // tan(theta) < tan(a), know x, find y
-                intersection_x = 0;
-                intersection_y = intersection_x * d_y_theta1 / d_x_theta1 + intercept;
-            }
-    }
-    if (d_x_theta1 >= 0 && d_y_theta1 <= 0) {
-        // forth quadrant; compare with d
-        int x_2_d = max_w - px; // horizontal distance to d, d is the vertice in the forth quadrant;
-        int y_2_d = 0 - py; // vertical distance to d, d is the vertice in the forth quadrant;
-        if (d_y_theta1 / d_x_theta1 < (y_2_d / x_2_d)) {
-                // tan(theta) < tan(a), know y, find x
-                intersection_y = 0;
-                intersection_x = (intersection_y - intercept) * d_x_theta1 / d_y_theta1;
-            } else {
-                // tan(theta) < tan(a), know x, find y
-                intersection_x = 0;
-                intersection_y = intersection_x * d_y_theta1 / d_x_theta1 + intercept;
-            }
-    }
-
-    if(!steep) {
-        std::swap(intersection_x,intersection_y);
-    }
     // calculate the intersection.
+    Point intersection1 = find_intersection(theta1, px, py, win_w, win_h);
+    Point intersection2 = find_intersection(theta2, px, py, win_w, win_h);
 
     // determine if a vertice is in the range.
 
