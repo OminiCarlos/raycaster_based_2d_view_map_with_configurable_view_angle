@@ -73,38 +73,34 @@ void generate_hit_map(std::vector<char>* hit_map, size_t hit_w, size_t hit_h, si
         }
     }
 }
-
+// cast_ray() draws a line to connect the begin and end points. 
 // refactor to take cartesian coordinates as input. Leave the coordinate conversion to the main function. 
-void cast_ray(float& player_a, size_t px, size_t py, const size_t win_w, const size_t win_h, std::vector<char>& hit_map, std::vector<unsigned int>& framebuffer)
+void cast_ray(int px, int py, int end_x, int end_y, const size_t win_w, const size_t win_h, std::vector<char>& hit_map, std::vector<unsigned int>& framebuffer)
 {
-    float dx = cosf(player_a);
-    if (fabs(dx) < 1e-7) {  // 1e-7 is an example threshold
-        dx = 0.0f;
-    }
-    float dy = sinf(player_a);
-    if (fabs(dy) < 1e-7) {  // 1e-7 is an example threshold
-        dy = 0.0f;
-    }
-    
+    float dx = end_x - px;
+    float dy = end_y - py;
+
     int stepx = (dx == 0) ? 0 : (dx < 0 ? -1 : 1);
+    assert (stepx != 0);
     int stepy = (dy == 0) ? 0 : (dy < 0 ? -1 : 1);
 
     bool steep = false; // flag that idicates the data needs to be transposed.
     int lim_pri = win_w; // limit of the primary axis
-    int c_x = px; // cast coordinate at primary axis;
-    int c_y = py; // cast coordinate at secondary axis;
-
-    if (abs(dy) > abs(dx)) 
+    int c_x = px; // cast's coordinate at primary axis;
+    int c_y = py; // cast's coordinate at secondary axis;
+    
+    int abs_dy = abs(dy);
+    int abs_dx = abs(dx);
+    if (abs_dy > abs_dx) // projects everything onto the transposed space.
     {
         steep = true;
         lim_pri = win_h;
         std::swap(c_x, c_y);
-        std::swap(dx, dy);
+        std::swap(abs_dx, abs_dy);
         std::swap(stepx, stepy);
     }
 
-    float delta = (dx == 0) ? 1: abs(dy/dx); // just give a constant number to avoid arithmatic error
-    float sum_delta = 0;
+    int sum_y = 0;
     while (c_x >= 0 && c_x <= lim_pri)
     {   
         // render first;
@@ -121,39 +117,57 @@ void cast_ray(float& player_a, size_t px, size_t py, const size_t win_w, const s
 
         // then figure out the next pixel.
         c_x += stepx;
-        sum_delta += delta;
-        if (sum_delta > 0.5)
+        sum_y += abs_dy;
+        /*
+            sum_delta - 1 converts in relation to dx, dy:
+            sum_delta - sum_y/ sum_x;
+            -> let sum_delta = k;
+            sum_y / sum_x  = k
+            sum_y = sum_x * k;
+            changes to:
+            sum_y / sum_x  = k -1;
+            sum_y = sum_x * k - sum_x;
+            sum_y needs to substract sum_x.
+        */
+        if (2 * sum_y > abs_dx)
         {
             c_y += stepy;
-            sum_delta -= 1;
+            sum_y -= abs_dx;
         }
     }
 }
 
 Point find_intersection(float theta, size_t px, size_t py,int max_w, int max_h) {
+    std::cout << "theta = " << theta <<std::endl;
     // initialize parameters
     Point intersection;
     // if steep, transpose to avoid tan(theta) being too big.
     float dx = cos(theta);
-    if(dx < 1e-7) dx = 0.0f;
+    if(abs(dx) < 1e-7) dx = 0.0f;
     float dy = sin(theta);
-    if(dy < 1e-7) dy = 0.0f;
+    if(abs(dy) < 1e-7) dy = 0.0f;
     if (dx == 0 && dy == 0)
     {
         intersection.x = px; 
         intersection.y = py;
+        std::cout << "The intersection for angle: " << theta << " is ("
+         << intersection.x << "," << intersection.y << ")" << std::endl;
         return intersection;
     }
     if (dx == 0)
     {
         intersection.y = py;
         intersection.x = dy > 0 ? max_w : 0;
+        std::cout << "The intersection for angle: " << theta << " is ("
+         << intersection.x << "," << intersection.y << ")" << std::endl;
         return intersection;
     }
     if (dy == 0)
     {
         intersection.x = px;
         intersection.y = dx > 0 ? max_h : 0;
+        std::cout << "The intersection for angle: " << theta << "is ("
+         << intersection.x << "," << intersection.y << ")" << std::endl;
         return intersection;
     }
     bool steep = false;
@@ -230,9 +244,11 @@ Point find_intersection(float theta, size_t px, size_t py,int max_w, int max_h) 
             }
     }
 
-    if(!steep) {
+    if(steep) {
         std::swap(intersection.x,intersection.y);
     }
+    std::cout << "The intersection for angle: " << theta << " is ("
+         << intersection.x << "," << intersection.y << ")" << std::endl;
     return intersection;
 }
 
@@ -246,7 +262,24 @@ int main() {
     std::vector<char> hit_map(win_w*win_h, ' ');
     const size_t map_w = 16; // map width
     const size_t map_h = 16; // map height
-    const char map[] = "0000222222220000"\
+    const char map[] = 
+                    //    "0000222222220000"\
+                    //    "1              0"\
+                    //    "1              0"\
+                    //    "1              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "2              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0              0"\
+                    //    "0002222222200000"; // empty game map
+                       "0000222222220000"\
                        "1              0"\
                        "1      11111   0"\
                        "1     0        0"\
@@ -265,13 +298,12 @@ int main() {
     assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string, 
     // because strings end with '\0'.Each row has map_h+1 columns.
 
-
     // the player state.
     float player_x = 13.456; // player x position
     float player_y = 2.345; // player y position
     float degree = 125;
     float player_a = (degree/ 180) * M_PI; // player view direction
-    float vision_angle = (120 / 180 * M_PI); // parameter; how wide the player can see. 
+    float vision_angle = (90.0f / 180 * M_PI); // parameter; how wide the player can see. 
     assert(vision_angle > 0);
 
 
@@ -307,27 +339,27 @@ int main() {
 
     size_t px = player_x*rect_w; // player x in pixel
     size_t py = player_y*rect_h; // player y in pixel
-    size_t theta1 = player_a - vision_angle / 2; // lower bound of player view;
-    size_t theta2 = player_a + vision_angle / 2; // upper bound of player view;
 
-    // cast_ray() draws a line to connect the begin and end points. 
+
+    for (
+        float view_a = player_a;
+        view_a < player_a + M_PI * 2;
+        view_a += M_PI / 180 * 15
+        )
+    {
     // first find the end points of players view, which are the rays' intersection with the border.
+    float theta1 = view_a - vision_angle / 2; // lower bound of player view;
+    float theta2 = view_a + vision_angle / 2; // upper bound of player view;
     // pre-treatment: find out points to iterate;
     // calculate the intersection.
     Point intersection1 = find_intersection(theta1, px, py, win_w, win_h);
     Point intersection2 = find_intersection(theta2, px, py, win_w, win_h);
 
     // determine if a vertice is in the range.
-
     // determine the range to iterate
-
-    for (
-        float view_a = player_a - M_PI / 6;
-        view_a <= player_a + M_PI / 6;
-        view_a += M_PI / 180
-        )
-    {
-        cast_ray(view_a, px, py, win_w, win_h, hit_map, framebuffer);
+    // cast_ray() draws a line to connect the begin and end points. 
+        cast_ray(px, py,(int)intersection1.x, (int) intersection1.y,win_w, win_h, hit_map, framebuffer);
+        cast_ray(px, py,(int)intersection2.x, (int) intersection2.y,win_w, win_h, hit_map, framebuffer);
     }
    
 
