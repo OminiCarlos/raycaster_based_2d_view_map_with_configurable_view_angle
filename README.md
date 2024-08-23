@@ -1,10 +1,15 @@
 A 2D vision  map that shows the view of a player, using ray casting algorithm. 
-- The view angle of the player is configurable.
 - This map overcomes a issue that when the distance is long, there will be holes between rays.
 Simple ray casting with angular step of 1 degree. 
 ![image](https://github.com/user-attachments/assets/419cc22b-facc-48ae-af04-99d25663e923)
 My algorithm converts converstional angluar-based iteration in polar coordinate into pixel-based iteration the edge. This way the iteration is angularly dynamic, and will not fail when the size of the map is big.
-![image](https://github.com/user-attachments/assets/7a11d46c-0867-4a2b-8ff0-32e5d4d7e1c6)
+![image](https://github.com/user-attachments/assets/6fc1e420-2658-4910-8bf4-3ebcafcc3887)
+
+- The view angle of the player is configurable.
+Player vision angle =  270 degree:
+![image](https://github.com/user-attachments/assets/64d75067-9afe-493f-82b8-1ae898a840c6)
+Play vision angle = 20 degree:
+![image](https://github.com/user-attachments/assets/281782ca-cf66-4c73-9611-ffd1b6fe7300)
 
 Under the hood, I used Breseham's algorithm, and developped my own algorithm to scan the field in the player's vision. 
 
