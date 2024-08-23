@@ -5,11 +5,12 @@ Simple ray casting with angular step of 1 degree.
 My algorithm converts converstional angluar-based iteration in polar coordinate into pixel-based iteration the edge. This way the iteration is angularly dynamic, and will not fail when the size of the map is big.
 ![image](https://github.com/user-attachments/assets/6fc1e420-2658-4910-8bf4-3ebcafcc3887)
 
-- The view angle of the player is configurable.
-Player vision angle =  270 degree:
-![image](https://github.com/user-attachments/assets/64d75067-9afe-493f-82b8-1ae898a840c6)
+- The view angle of the player is configurable (0-360).
 Play vision angle = 20 degree:
 ![image](https://github.com/user-attachments/assets/281782ca-cf66-4c73-9611-ffd1b6fe7300)
+
+Player vision angle =  120 degree:
+![image](https://github.com/user-attachments/assets/64d75067-9afe-493f-82b8-1ae898a840c6)
 
 Under the hood, I used Breseham's algorithm, and developped my own algorithm to scan the field in the player's vision. 
 
