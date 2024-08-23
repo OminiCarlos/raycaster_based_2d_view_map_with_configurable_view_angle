@@ -163,11 +163,16 @@ At this point, we have a somewhat working code for ray casting. There are still 
 ![image](https://github.com/user-attachments/assets/2f3fd492-f05b-4f9a-a03c-81fd6bab2142)
 
 After much work, I have refactored the code so that the entire function is based on Cartesian coordinates. 
+
 There are a few challenges that arose with the Cartesian system. 
+
 One fundermental issue lies under the inter-angle conversion. In polar system, when we iterate through the player's view, we iterate by a fixed angle. To make sure we can iterate through each pixel, we need to make sure the angular resolution is small enough. The bigger the angle of the pixel is to the player, the smaller the angular difference between the left and right edge of the pixel will be. In addition, since we transpose the x, y axis when the angle is more than 45 degree, the maximum angle of the pixel to the player will be 45 degree. To find out the minimum angular resolution, we need to find out the angular distance of one pixel at 45 degree. In this case, the angular step is fixed. 
+
 On the other hand, when we transfer the coordinates in the Cartesian system, the function iterates through each pixel instead of the angle. Therefore, the angular difference are no more fixed. The advantage with the Cartisian system is that since each pxiel has integer coordinates, many calculation are much less comupte-heavy.To optimize the the operations in this Coordinate system, many logics needs to be changed.
+
 In this system, I used math to calculate the interception of players gaze with the edge of the map, then set it as the imaginary destination, and cast a ray to it. However, the intersection with the map can be tricky. It can hit on the vertical and horizontal edges, depending on player's state. In addition, to avoid the loss of precision, we need to transpose x and y. The issue is further complicated when the known coordinate changes depending on the edge the ray cross with. For example, When it's the upper edge, y = 0, we need to calculate x. When it's the right edge, x = window_width, we need to calculate y. 
 In addition, since we are iterating all points on the edge, the way to iterate edges are also subtle. First we need to find out which points are visible; Then we need to know when to iterate horizontally and vertically...
+
 I will update this introduction in the future.
 
 Finally, I have noticed that even this solution is not optimal. This solution is compute heavy since I cast a ray to every pxiel. It might be easier to just cast a ray to check the potential corners of the blocks. Once all the blocks are checked the field between 2 rays, which is a triangle, should be visible. Instead of casting a ray, I can simply render the triangles. I will refactor my program further. 
