@@ -1,3 +1,13 @@
 # Ignore content built with CMake
 build/
 
+CppProperties.json
+.vs/ProjectSettings.json
+.vs/VSWorkspaceState.json
+.vs/tinyraycaster/FileContentIndex/0c82d89f-de01-4f2d-8776-020847ed9c2a.vsidx
+.vs/tinyraycaster/FileContentIndex/bf6898dc-30bc-4bd2-bfc5-ff38aef1fd1d.vsidx
+.vs/tinyraycaster/v17/.wsuo
+.vs/tinyraycaster/v17/Browse.VC.db
+.vs/tinyraycaster/v17/DocumentLayout.json
+.vscode/launch.json
+.vs/slnx.sqlite

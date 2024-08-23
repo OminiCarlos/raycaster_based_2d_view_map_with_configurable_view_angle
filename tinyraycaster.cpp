@@ -407,7 +407,6 @@ int main()
         size_t px = player_x * rect_w; // player x in pixel
         size_t py = player_y * rect_h; // player y in pixel
 
-        draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(0, 0, 255));
 
         float view_a = player_a + M_PI / 180 * 15 * k;
         // first find the end points of players view, which are the rays' intersection with the border.
@@ -514,9 +513,10 @@ int main()
         // cast_ray() draws a line to connect the begin and end points.
         cast_ray(px, py, (int)intersection1.x, (int)intersection1.y, win_w, win_h, hit_map, framebuffer);
         cast_ray(px, py, (int)intersection2.x, (int)intersection2.y, win_w, win_h, hit_map, framebuffer);
-
+        // draw player's position
+        draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(255, 0, 0));
         drop_ppm_image("./out_" + std::to_string(k) + ".ppm", framebuffer, win_w, win_h);
     }
-
+    std::cout << "Done." << std::endl;
     return 0;
 }
