@@ -151,7 +151,6 @@ void cast_ray(int px, int py, int end_x, int end_y, const size_t win_w, const si
 
 Point find_intersection(float theta, size_t px, size_t py, int max_w, int max_h)
 {
-    std::cout << "theta = " << theta << std::endl;
     // initialize parameters
     Point intersection;
     // if steep, transpose to avoid tan(theta) being too big.
@@ -369,7 +368,7 @@ int main()
     float player_y = 2.345;  // player y position
     float degree = 155.8;
     float player_a = (degree / 180) * M_PI;     // player view direction
-    float vision_angle = (120.0f / 180 * M_PI); // parameter; how wide the player can see.
+    float vision_angle = (270.0f / 180 * M_PI); // parameter; how wide the player can see.
     assert(vision_angle > 0);
     assert(vision_angle < 2 * M_PI);
 
@@ -408,7 +407,7 @@ int main()
         size_t px = player_x * rect_w; // player x in pixel
         size_t py = player_y * rect_h; // player y in pixel
 
-        draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(255, 255, 255));
+        draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(0, 0, 255));
 
         float view_a = player_a + M_PI / 180 * 15 * k;
         // first find the end points of players view, which are the rays' intersection with the border.
@@ -430,17 +429,51 @@ int main()
         // transfer intersection to ints to reduce calculation.
         std::pair<int, int> start = {(int)intersection1.x, (int)intersection1.y};
         std::pair<int, int> end = {(int)intersection2.x, (int)intersection2.y};
+        int i;
+        int diff_x = start.first - (int) px; // intersection's horizontal distance to the player, used to determine quadrant.
+        int diff_y = start.second - (int) py; // intersection's vertical distance to the player, used to determine quadrant.
+        if (diff_x == 0 && diff_y == 0) {
+            // on one of the vertices
+            // use px py to determine vertice
+            
+        }
+
+        if (diff_x == 0) {
+            // on left or right edge
+        }
+        if (diff_y == 0) {
+            // on top or bottom edge
+
+        }
+        if (diff_x > 0 && diff_y > 0)
+        {
+            i = 0;
+        } else if (diff_x < 0 && diff_y > 0)
+        {
+            i = 1;
+        } else if (diff_x < 0 && diff_y < 0)
+        {
+            i = 2;
+        } else if (diff_x > 0 && diff_y < 0)
+        {
+            i = 3;
+        }
+         
+        
+        
 
         std::vector<std::pair<int, int>> points_to_cast;
         // add all the points to render;
         points_to_cast.push_back(start);
-        for (int i = 0; i < 4; i++)
+        for (int m = 0; m < 4; m++)
         {
             if (is_in_view_range(points[i].x, points[i].y, px, py, theta1, theta2))
             {
                 std::pair<int, int> p = {(int)points[i].x, (int)points[i].y};
                 points_to_cast.push_back(p);
             }
+            i++;
+            i = i % 4;
         }
         points_to_cast.push_back(end);
 
@@ -483,7 +516,6 @@ int main()
         cast_ray(px, py, (int)intersection2.x, (int)intersection2.y, win_w, win_h, hit_map, framebuffer);
 
         drop_ppm_image("./out_" + std::to_string(k) + ".ppm", framebuffer, win_w, win_h);
-        std::cout << "angle " << view_a << "checked" << std::endl;
     }
 
     return 0;
