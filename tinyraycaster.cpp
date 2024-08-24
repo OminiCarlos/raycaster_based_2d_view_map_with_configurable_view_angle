@@ -344,22 +344,22 @@ int main()
         "0              0"
         "0              0"
         "0002222222200000"; // empty game map
-        // "0000222222220000"
-        // "1              0"
-        // "1      11111   0"
-        // "1     0        0"
-        // "0     0  1110000"
-        // "0     3        0"
-        // "0   10000      0"
-        // "0   0   11100  0"
-        // "0   0   0      0"
-        // "0   0   1  00000"
-        // "0       1      0"
-        // "2       1      0"
-        // "0       0      0"
-        // "0 0000000      0"
-        // "0              0"
-        // "0002222222200000";                   // our game map
+    // "0000222222220000"
+    // "1              0"
+    // "1      11111   0"
+    // "1     0        0"
+    // "0     0  1110000"
+    // "0     3        0"
+    // "0   10000      0"
+    // "0   0   11100  0"
+    // "0   0   0      0"
+    // "0   0   1  00000"
+    // "0       1      0"
+    // "2       1      0"
+    // "0       0      0"
+    // "0 0000000      0"
+    // "0              0"
+    // "0002222222200000";                   // our game map
     assert(sizeof(map) == map_w * map_h + 1); // +1 for the null terminated string,
     // because strings end with '\0'.Each row has map_h+1 columns.
 
@@ -407,7 +407,6 @@ int main()
         size_t px = player_x * rect_w; // player x in pixel
         size_t py = player_y * rect_h; // player y in pixel
 
-
         float view_a = player_a + M_PI / 180 * 15 * k;
         // first find the end points of players view, which are the rays' intersection with the border.
         float theta1 = view_a - vision_angle / 2; // lower bound of player view;
@@ -419,6 +418,10 @@ int main()
 
         // determine if a vertice is in the range.
         // initialize points;
+        // C===============D
+        // ||              ||
+        // B===============A
+
         std::vector<Point> points = {
             {(float)win_w, (float)win_h},
             {(float)0, (float)win_h},
@@ -428,38 +431,55 @@ int main()
         // transfer intersection to ints to reduce calculation.
         std::pair<int, int> start = {(int)intersection1.x, (int)intersection1.y};
         std::pair<int, int> end = {(int)intersection2.x, (int)intersection2.y};
-        int i;
-        int diff_x = start.first - (int) px; // intersection's horizontal distance to the player, used to determine quadrant.
-        int diff_y = start.second - (int) py; // intersection's vertical distance to the player, used to determine quadrant.
-        if (diff_x == 0 && diff_y == 0) {
+        int i;                               // index of the points to start scanning
+        int diff_x = start.first - (int)px;  // intersection's horizontal distance to the player, used to determine quadrant.
+        int diff_y = start.second - (int)py; // intersection's vertical distance to the player, used to determine quadrant.
+        if (diff_x == 0 && diff_y == 0)
+        {
             // on one of the vertices
             // use px py to determine vertice
-            
+            if (px == win_w && px == win_h)
+                i = 0; // on A, start with A
+            if (px == 0 && px == win_h)
+                i = 1; // on B, start with B
+            if (px == win_w && px == win_h)
+                i = 2; // on C, start with C
+            if (px == win_w && px == win_h)
+                i = 3; // on D, start with D
         }
 
-        if (diff_x == 0) {
-            // on left or right edge
+        if (diff_x == 0)
+        {
+            if (px == 0)
+                i = 1; // on left edge, start with B or C. Let say B.
+            if (px == win_w)
+                i = 0; // on right edge, start with A or D. Let say A.
         }
-        if (diff_y == 0) {
+
+        if (diff_y == 0)
+        {
             // on top or bottom edge
-
+            if (py == 0)
+                i = 2; // on top edge, start with C or D. Let say C.
+            if (py == win_h)
+                i = 1; // on top edge, start with A or B. Let say A.
         }
         if (diff_x > 0 && diff_y > 0)
         {
             i = 0;
-        } else if (diff_x < 0 && diff_y > 0)
+        }
+        else if (diff_x < 0 && diff_y > 0)
         {
             i = 1;
-        } else if (diff_x < 0 && diff_y < 0)
+        }
+        else if (diff_x < 0 && diff_y < 0)
         {
             i = 2;
-        } else if (diff_x > 0 && diff_y < 0)
+        }
+        else if (diff_x > 0 && diff_y < 0)
         {
             i = 3;
         }
-         
-        
-        
 
         std::vector<std::pair<int, int>> points_to_cast;
         // add all the points to render;
