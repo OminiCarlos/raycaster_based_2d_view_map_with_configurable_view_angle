@@ -153,12 +153,13 @@ Point find_intersection(float theta, size_t px, size_t py, int max_w, int max_h)
 {
     // initialize parameters
     Point intersection;
+    const float epsilon = 1e-6;
     // if steep, transpose to avoid tan(theta) being too big.
     float dx = cos(theta);
-    if (abs(dx) < 1e-6)
+    if (abs(dx) < epsilon)
         dx = 0.0f;
     float dy = sin(theta);
-    if (abs(dy) < 1e-6)
+    if (abs(dy) < epsilon)
         dy = 0.0f;
     if (dx == 0 && dy == 0)
     {
@@ -328,38 +329,38 @@ int main()
     const size_t map_w = 16; // map width
     const size_t map_h = 16; // map height
     const char map[] =
-        "0000222222220000"
-        "1              0"
-        "1              0"
-        "1              0"
-        "0              0"
-        "0              0"
-        "0              0"
-        "0              0"
-        "0              0"
-        "0              0"
-        "0              0"
-        "2              0"
-        "0              0"
-        "0              0"
-        "0              0"
-        "0002222222200000"; // empty game map
         // "0000222222220000"
         // "1              0"
-        // "1      11111   0"
-        // "1     0        0"
-        // "0     0  1110000"
-        // "0     3        0"
-        // "0   10000      0"
-        // "0   0   11100  0"
-        // "0   0   0      0"
-        // "0   0   1  00000"
-        // "0       1      0"
-        // "2       1      0"
-        // "0       0      0"
-        // "0 0000000      0"
+        // "1              0"
+        // "1              0"
         // "0              0"
-        // "0002222222200000";                   // our game map
+        // "0              0"
+        // "0              0"
+        // "0              0"
+        // "0              0"
+        // "0              0"
+        // "0              0"
+        // "2              0"
+        // "0              0"
+        // "0              0"
+        // "0              0"
+        // "0002222222200000"; // empty game map
+        "0000222222220000"
+        "1              0"
+        "1      11111   0"
+        "1     0        0"
+        "0     0  1110000"
+        "0     3        0"
+        "0   10000      0"
+        "0   0   11100  0"
+        "0   0   0      0"
+        "0   0   1  00000"
+        "0       1      0"
+        "2       1      0"
+        "0       0      0"
+        "0 0000000      0"
+        "0              0"
+        "0002222222200000";                   // our game map
     assert(sizeof(map) == map_w * map_h + 1); // +1 for the null terminated string,
     // because strings end with '\0'.Each row has map_h+1 columns.
 
@@ -372,7 +373,7 @@ int main()
     assert(vision_angle > 0);
     assert(vision_angle < 2 * M_PI);
 
-    for (int k = 0; k <= 24; k++)
+    for (int k = 0; k <= 24; k++) // test, render the player's view for every 15 degrees, and save an output. k is used to calculate the current player's angle. line 411.
     {
         // map rendering: background.
         for (size_t j = 0; j < win_h; j++)
@@ -408,7 +409,7 @@ int main()
         size_t py = player_y * rect_h; // player y in pixel
 
 
-        float view_a = player_a + M_PI / 180 * 15 * k;
+        float view_a = player_a + M_PI / 180 * 15 * k; // increment the player angle by 15 degree for this round. 
         // first find the end points of players view, which are the rays' intersection with the border.
         float theta1 = view_a - vision_angle / 2; // lower bound of player view;
         float theta2 = view_a + vision_angle / 2; // upper bound of player view;
