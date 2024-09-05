@@ -176,4 +176,6 @@ In addition, since we are iterating all points on the edge, the way to iterate e
 
 I will update this introduction in the future.
 
-Finally, I have noticed that even this solution is not optimal. This solution is compute heavy since I cast a ray to every pxiel. It might be easier to just cast a ray to check the potential corners of the blocks. Once all the blocks are checked the field between 2 rays, which is a triangle, should be visible. Instead of casting a ray, I can simply render the triangles. I will refactor my program further. 
+Finally, I have noticed that even this solution is not optimal. This solution is compute heavy since I cast a ray to every pxiel. It might be easier to just cast a ray to check the potential corners of the blocks. Once all the blocks are checked, the area between 2 rays, which is a triangle, is visible. Instead of casting a ray, I can simply render the triangles. I will refactor my program further. 
+
+This algrorithm can be further optimized when I develop a way to connect consective blocks into a big block. For example, a big rectangle consists of several square blocks can be considered just as a rectangle. I only need to check 4 vertices instead of all the squares separately.  
