@@ -1,3 +1,5 @@
+* This is an introduction to my project. Please find the link to the source code on github in my resume. 
+
 A 2D vision  map that shows the view of a player, using ray casting algorithm. 
 - This map overcomes a issue that when the distance is long, there will be holes between rays.
 Simple ray casting with angular step of 1 degree. 
