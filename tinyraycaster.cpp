@@ -537,7 +537,9 @@ int main()
         cast_ray(px, py, (int)intersection2.x, (int)intersection2.y, win_w, win_h, hit_map, framebuffer);
         // draw player's position
         draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(255, 0, 0));
-        drop_ppm_image("./out_" + std::to_string(k) + ".ppm", framebuffer, win_w, win_h);
+        std::string file_path = "C:\\Users\\shuch\\OneDrive\\UBC BCS\\Personal projects\\raycaster_based_2d_view_map_with_configurable_view_angle\\out_" + std::to_string(k) + ".ppm";
+        drop_ppm_image(file_path, framebuffer, win_w, win_h);
+        std::cout << "wrote file." <<std::endl;
     }
     std::cout << "Done." << std::endl;
     return 0;
