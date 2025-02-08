@@ -1,18 +1,7 @@
-#define _USE_MATH_DEFINES
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <cstdint>
-#include <cassert>
-#include <utility>
-#include <filesystem>
 
-struct Point
-{
-    float x;
-    float y;
-};
+
+#include <player.h>
+#include <global_variables.h>
 
 uint32_t pack_color(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a = 255)
 {
@@ -199,13 +188,13 @@ Point find_intersection(float theta, size_t px, size_t py, int max_w, int max_h)
 
     // find intersection with the limits. (make it a separate function)
     // find the quadrant the intersection is in.
-    // if angle more than angle to the vertice, change the known factor for intersection.
+    // if angle more than angle to the corner, change the known factor for intersection.
     // plot the tangent function, you will find that in any quadrant, tan(theta) increases with theta.
 
     if (dx > 0 && dy > 0)
     {
-        int x_2_a = max_w - px; // horizontal distance to a, a is the vertice in the first quadrant;
-        int y_2_a = max_h - py; // vertical distance to a, a a is the vertice in the first quadrant;
+        int x_2_a = max_w - px; // horizontal distance to a, a is the corner in the first quadrant;
+        int y_2_a = max_h - py; // vertical distance to a, a a is the corner in the first quadrant;
         // fisrt quadrant; compare with a
         if (slope > ((float)y_2_a / x_2_a))
         {
@@ -224,8 +213,8 @@ Point find_intersection(float theta, size_t px, size_t py, int max_w, int max_h)
     if (dx <= 0 && dy >= 0)
     {
         // second quadrant; compare with b
-        int x_2_b = 0 - px;     // horizontal distance to b, b is the vertice in the second quadrant;
-        int y_2_b = max_h - py; // vertical distance to b, b is the vertice in the second quadrant;
+        int x_2_b = 0 - px;     // horizontal distance to b, b is the corner in the second quadrant;
+        int y_2_b = max_h - py; // vertical distance to b, b is the corner in the second quadrant;
         if (slope < ((float)y_2_b / x_2_b))
         {
             // tan(theta) < tan(a), know y, find x
@@ -243,8 +232,8 @@ Point find_intersection(float theta, size_t px, size_t py, int max_w, int max_h)
     if (dx <= 0 && dy <= 0)
     {
         // third quadrant; compare with c
-        int x_2_c = 0 - px; // horizontal distance to d, d is the vertice in the first quadrant;
-        int y_2_c = 0 - py; // vertical distance to d, d is the vertice in the first quadrant;
+        int x_2_c = 0 - px; // horizontal distance to d, d is the corner in the first quadrant;
+        int y_2_c = 0 - py; // vertical distance to d, d is the corner in the first quadrant;
         if (slope > ((float)y_2_c / x_2_c))
         {
             // tan(theta) > tan(a), know y, find x
@@ -261,8 +250,8 @@ Point find_intersection(float theta, size_t px, size_t py, int max_w, int max_h)
     if (dx >= 0 && dy <= 0)
     {
         // forth quadrant; compare with d
-        int x_2_d = max_w - px; // horizontal distance to d, d is the vertice in the forth quadrant;
-        int y_2_d = 0 - py;     // vertical distance to d, d is the vertice in the forth quadrant;
+        int x_2_d = max_w - px; // horizontal distance to d, d is the corner in the forth quadrant;
+        int y_2_d = 0 - py;     // vertical distance to d, d is the corner in the forth quadrant;
         if (slope < ((float)y_2_d / x_2_d))
         {
             // tan(theta) < tan(a), know y, find x
@@ -296,40 +285,38 @@ float normalize_angle(float angle)
     return angle;
 }
 
-bool is_in_view_range(float vertex_x, float vertex_y, float player_x, float player_y, float theta1, float theta2)
+bool is_in_view_range(float corner_x, float corner_y, float player_x, float player_y, float lower_bound_of_view, float upper_bound_of_view)
 {
     // Calculate the angle of the vertex with respect to the player's position
-    float vertex_angle = atan2(vertex_y - player_y, vertex_x - player_x);
+    float vertex_angle = atan2(corner_y - player_y, corner_x - player_x);
 
     // Normalize the angles to be within [0, 2*PI)
-    theta1 = normalize_angle(theta1);
-    theta2 = normalize_angle(theta2);
+    lower_bound_of_view = normalize_angle(lower_bound_of_view);
+    upper_bound_of_view = normalize_angle(upper_bound_of_view);
     vertex_angle = normalize_angle(vertex_angle);
 
     // Check if the vertex_angle lies between theta1 and theta2
-    if (theta1 <= theta2)
+    if (lower_bound_of_view <= upper_bound_of_view)
     {
-        return vertex_angle >= theta1 && vertex_angle <= theta2;
+        return vertex_angle >= lower_bound_of_view && vertex_angle <= upper_bound_of_view;
     }
     else
     {
         // Handle the case where the range crosses the 0-degree (or 2 * PI) line
-        return vertex_angle >= theta1 || vertex_angle <= theta2;
+        return vertex_angle >= lower_bound_of_view || vertex_angle <= upper_bound_of_view;
     }
 }
 
 int main()
 {
-    const size_t win_w = 512; // image width
-    const size_t win_h = 512; // image height
+    const int win_w = 512; // image width
+    const int win_h = 512; // image height
     // the constructor format is std::vector(size_t count, const T& value);
     // first argument specifies the number of pixels.
     // second argument uint32_t, set to 255, which means 3 bytes (RGB) are 0, and A is 255.
     std::vector<uint32_t> framebuffer(win_w * win_h, 255); // the image itself, initialized to white
     std::vector<char> hit_map(win_w * win_h, ' ');
-    const size_t map_w = 16; // map width
-    const size_t map_h = 16; // map height
-    const char map[] =
+    const char map_char[] =
         // "0000222222220000"
         // "1              0"
         // "1              0"
@@ -361,18 +348,23 @@ int main()
         "0       0      0"
         "0 0000000      0"
         "0              0"
-        "0002222222200000";                   // our game map
-    assert(sizeof(map) == map_w * map_h + 1); // +1 for the null terminated string,
+        "0002222222200000"; // our game map
+    Map map =
+        {
+            16,
+            16,
+            map_char};
+    assert(sizeof(map_char) == map.w * map.h + 1); // +1 for the null terminated string,
     // because strings end with '\0'.Each row has map_h+1 columns.
 
     // the player state.
     float player_x = 13.456; // player x position
     float player_y = 5.345;  // player y position
     float degree = 155.8;
-    float player_a = (degree / 180) * M_PI;     // player view direction
-    float vision_angle = (270.0f / 180 * M_PI); // parameter; how wide the player can see.
-    assert(vision_angle > 0);
-    assert(vision_angle < 2 * M_PI);
+    float player_a = (degree / 180) * M_PI;   // player view direction
+    float view_width = (270.0f / 180 * M_PI); // parameter; how wide the player can see.
+
+    Player player(player_x, player_y, player_a, view_width);
 
     for (int k = 0; k <= 24; k++) // test, render the player's view for every 15 degrees, and save an output. k is used to calculate the current player's angle. line 411.
     {
@@ -389,57 +381,63 @@ int main()
         }
 
         // map rendering: wall initialization. (render the wall and generate hit map)
-        const size_t rect_w = win_w / map_w; // the width of each map block
-        const size_t rect_h = win_h / map_h; // the height of each map block
-        for (size_t j = 0; j < map_h; j++)
+        const size_t rect_w = win_w / map.w; // the width of each map block
+        const size_t rect_h = win_h / map.h; // the height of each map block
+        for (size_t j = 0; j < map.h; j++)
         { // draw the map
-            for (size_t i = 0; i < map_w; i++)
+            for (size_t i = 0; i < map.w; i++)
             {
-                if (map[i + j * map_w] == ' ')
+                if (map.map[i + j * map.w] == ' ')
                     continue; // skip empty spaces
                 size_t rect_x = i * rect_w;
                 size_t rect_y = j * rect_h;
                 draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 255, 255));
-                generate_hit_map(&hit_map, win_w, win_h, rect_x, rect_y, rect_w, rect_h, map[i + j * map_w]);
+                generate_hit_map(&hit_map, win_w, win_h, rect_x, rect_y, rect_w, rect_h, map.map[i + j * map.w]);
             }
         }
 
-        // player initialization.
-        // player rendering: draw the player on the map
-        size_t px = player_x * rect_w; // player x in pixel
-        size_t py = player_y * rect_h; // player y in pixel
 
-        float view_a = player_a + M_PI / 180 * 15 * k; // increment the player angle by 15 degree for this round.
+        //TODO: change this to a method in player
+    const size_t rect_w = win_w / map.w; // the width of each map block
+    const size_t rect_h = win_h / map.h; // the height of each map block
+
+        player.gaze_angle = player.gaze_angle + M_PI / 180 * 15 * k; // increment the player angle by 15 degree for this round.
         // first find the end points of players view, which are the rays' intersection with the border.
-        float theta1 = view_a - vision_angle / 2; // lower bound of player view;
-        float theta2 = view_a + vision_angle / 2; // upper bound of player view;
-        // pre-treatment: find the points to iterate;
+        float lower_bound_of_view = player.gaze_angle - player.view_width / 2; // lower bound of player view;
+        float upper_bound_of_view = player.gaze_angle + player.view_width / 2; // upper bound of player view;
+        // pre-treatment: find the map_corners to iterate;
         // calculate the intersection.
-        Point intersection1 = find_intersection(theta1, px, py, win_w, win_h);
-        Point intersection2 = find_intersection(theta2, px, py, win_w, win_h);
+        size_t px = player.get_pixel_position(map).x;
+        size_t py = player.get_pixel_position(map).y;
+        Point intersection1 = find_intersection(lower_bound_of_view, px, py, win_w, win_h);
+        Point intersection2 = find_intersection(upper_bound_of_view, px, py, win_w, win_h);
+        // End TODO.
 
-        // determine if a vertice is in the range.
-        // initialize points;
+        // transfer intersection (pixel) to ints to reduce calculation.
+        // TODO: round down only? Need to consider >0.5 case.
+        std::pair<Pixel, Pixel> end_points = player.find_view_ranges(map);
+        Pixel start = end_points.first;
+        Pixel end = end_points.second;
+
+        // determine if a corner is in the range.
+        // initialize map_corners;
         // C===============D
         // ||              ||
         // B===============A
 
-        std::vector<Point> points = {
-            {(float)win_w, (float)win_h},
-            {(float)0, (float)win_h},
-            {(float)0, (float)0},
-            {(float)win_w, (float)0}};
+        Pixel map_corners[4] = {
+            {win_w, win_h},
+            {0, win_h},
+            {0, 0},
+            {win_w, 0} };
 
-        // transfer intersection to ints to reduce calculation.
-        std::pair<int, int> start = {(int)intersection1.x, (int)intersection1.y};
-        std::pair<int, int> end = {(int)intersection2.x, (int)intersection2.y};
-        int i;                               // index of the points to start scanning
-        int diff_x = start.first - (int)px;  // intersection's horizontal distance to the player, used to determine quadrant.
-        int diff_y = start.second - (int)py; // intersection's vertical distance to the player, used to determine quadrant.
+        int i;                          // index of the map_corners to start scanning
+        int diff_x = start.x - (int)px; // intersection's horizontal distance to the player, used to determine quadrant.
+        int diff_y = start.y - (int)py; // intersection's vertical distance to the player, used to determine quadrant.
         if (diff_x == 0 && diff_y == 0)
         {
-            // on one of the vertices
-            // use px py to determine vertice
+            // on one of the corners
+            // use px py to determine corner
             if (px == win_w && px == win_h)
                 i = 0; // on A, start with A
             if (px == 0 && px == win_h)
@@ -483,14 +481,14 @@ int main()
             i = 3;
         }
 
-        std::vector<std::pair<int, int>> points_to_cast;
-        // add all the points to render;
+        std::vector<Pixel> points_to_cast;
+        // add all the map_corners to render;
         points_to_cast.push_back(start);
         for (int m = 0; m < 4; m++)
         {
-            if (is_in_view_range(points[i].x, points[i].y, px, py, theta1, theta2))
+            if (is_in_view_range(map_corners[i].x, map_corners[i].y, px, py, lower_bound_of_view, upper_bound_of_view))
             {
-                std::pair<int, int> p = {(int)points[i].x, (int)points[i].y};
+                Pixel p = {(int)map_corners[i].x, (int)map_corners[i].y};
                 points_to_cast.push_back(p);
             }
             i++;
@@ -498,46 +496,46 @@ int main()
         }
         points_to_cast.push_back(end);
 
-        // clock-wise, iterate each pixel on the edge between each two visible points in view.
-        // start -> a -> b -> c -> d -> end, the vertices are optional.
-        for (int i = 1; i < points_to_cast.size(); i++)
+        // clock-wise, iterate each pixel on the edge between each two visible map_corners in view.
+        // start -> a -> b -> c -> d -> end, the corners are optional.
+        for (int i = 1; i < (int)points_to_cast.size(); i++)
         {
             // on the same vertical line
-            if (points_to_cast[i - 1].first == points_to_cast[i].first)
+            if (points_to_cast[i - 1].x == points_to_cast[i].x)
             {
-                int start_y = points_to_cast[i].second;
-                int end_y = points_to_cast[i - 1].second;
+                int start_y = points_to_cast[i].y;
+                int end_y = points_to_cast[i - 1].y;
                 if (start_y > end_y)
                 {
                     std::swap(start_y, end_y);
                 }
                 for (int j = start_y; j < end_y; j++)
                 {
-                    cast_ray(px, py, points_to_cast[i].first, j, win_w, win_h, hit_map, framebuffer);
+                    cast_ray(px, py, points_to_cast[i].x, j, win_w, win_h, hit_map, framebuffer);
                 }
             }
             // on the same horizontal line
-            if (points_to_cast[i - 1].second == points_to_cast[i].second)
+            if (points_to_cast[i - 1].y == points_to_cast[i].y)
             {
-                int start_x = points_to_cast[i].first;
-                int end_x = points_to_cast[i - 1].first;
+                int start_x = points_to_cast[i].x;
+                int end_x = points_to_cast[i - 1].x;
                 if (start_x > end_x)
                 {
                     std::swap(start_x, end_x);
                 }
                 for (int j = start_x; j < end_x; j++)
                 {
-                    cast_ray(px, py, j, points_to_cast[i].second, win_w, win_h, hit_map, framebuffer);
+                    cast_ray(px, py, j, points_to_cast[i].y, win_w, win_h, hit_map, framebuffer);
                 }
             }
         }
         // raycasting: render a ray that represents the gaze of the player.
-        // cast_ray() draws a line to connect the begin and end points.
+        // cast_ray() draws a line to connect the begin and end map_corners.
         cast_ray(px, py, (int)intersection1.x, (int)intersection1.y, win_w, win_h, hit_map, framebuffer);
         cast_ray(px, py, (int)intersection2.x, (int)intersection2.y, win_w, win_h, hit_map, framebuffer);
         // draw player's position
         draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(255, 0, 0));
-        std::string build_folder = "output/";        // Define a relative path inside the build folder
+        std::string build_folder = "output/";              // Define a relative path inside the build folder
         std::filesystem::create_directories(build_folder); // Ensure the folder exists
 
         std::string file_path = build_folder + "out_" + std::to_string(k) + ".ppm";
