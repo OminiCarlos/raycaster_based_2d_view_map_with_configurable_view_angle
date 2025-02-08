@@ -11,3 +11,4 @@ CppProperties.json
 .vs/tinyraycaster/v17/DocumentLayout.json
 .vscode/launch.json
 .vs/slnx.sqlite
+.vscode/*

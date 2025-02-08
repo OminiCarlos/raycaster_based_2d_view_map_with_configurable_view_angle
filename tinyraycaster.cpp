@@ -367,7 +367,7 @@ int main()
 
     // the player state.
     float player_x = 13.456; // player x position
-    float player_y = 4.345;  // player y position
+    float player_y = 5.345;  // player y position
     float degree = 155.8;
     float player_a = (degree / 180) * M_PI;     // player view direction
     float vision_angle = (270.0f / 180 * M_PI); // parameter; how wide the player can see.
@@ -537,7 +537,7 @@ int main()
         cast_ray(px, py, (int)intersection2.x, (int)intersection2.y, win_w, win_h, hit_map, framebuffer);
         // draw player's position
         draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(255, 0, 0));
-        std::string build_folder = "build/output/";        // Define a relative path inside the build folder
+        std::string build_folder = "output/";        // Define a relative path inside the build folder
         std::filesystem::create_directories(build_folder); // Ensure the folder exists
 
         std::string file_path = build_folder + "out_" + std::to_string(k) + ".ppm";
