@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cassert>
 #include <utility>
+#include <filesystem>
 
 struct Point
 {
@@ -366,7 +367,7 @@ int main()
 
     // the player state.
     float player_x = 13.456; // player x position
-    float player_y = 2.345;  // player y position
+    float player_y = 4.345;  // player y position
     float degree = 155.8;
     float player_a = (degree / 180) * M_PI;     // player view direction
     float vision_angle = (270.0f / 180 * M_PI); // parameter; how wide the player can see.
@@ -408,8 +409,7 @@ int main()
         size_t px = player_x * rect_w; // player x in pixel
         size_t py = player_y * rect_h; // player y in pixel
 
-
-        float view_a = player_a + M_PI / 180 * 15 * k; // increment the player angle by 15 degree for this round. 
+        float view_a = player_a + M_PI / 180 * 15 * k; // increment the player angle by 15 degree for this round.
         // first find the end points of players view, which are the rays' intersection with the border.
         float theta1 = view_a - vision_angle / 2; // lower bound of player view;
         float theta2 = view_a + vision_angle / 2; // upper bound of player view;
@@ -537,9 +537,14 @@ int main()
         cast_ray(px, py, (int)intersection2.x, (int)intersection2.y, win_w, win_h, hit_map, framebuffer);
         // draw player's position
         draw_rectangle(framebuffer, win_w, win_h, px - 2, py - 2, 5, 5, pack_color(255, 0, 0));
-        std::string file_path = "C:\\Users\\shuch\\OneDrive\\UBC BCS\\Personal projects\\raycaster_based_2d_view_map_with_configurable_view_angle\\out_" + std::to_string(k) + ".ppm";
+        std::string build_folder = "build/output/";        // Define a relative path inside the build folder
+        std::filesystem::create_directories(build_folder); // Ensure the folder exists
+
+        std::string file_path = build_folder + "out_" + std::to_string(k) + ".ppm";
+        std::cout << "Saving to: " << file_path << std::endl;
+
         drop_ppm_image(file_path, framebuffer, win_w, win_h);
-        std::cout << "wrote file." <<std::endl;
+        std::cout << "wrote file." << std::endl;
     }
     std::cout << "Done." << std::endl;
     return 0;
